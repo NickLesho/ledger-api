@@ -16,5 +16,20 @@ services:
       timeout: 3s
       retries: 10
 
+  app:
+    profiles: ["app"]
+    build: .
+    image: ledger-api:local
+    container_name: ledger-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/ledger
+      DB_USERNAME: ledger
+      DB_PASSWORD: ledger
+    ports:
+      - "8080:8080"
+
 volumes:
   pgdata:
