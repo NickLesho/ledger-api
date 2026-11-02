@@ -22,11 +22,6 @@ variable "db_instance_class" {
   default     = "db.t4g.micro"
 }
 
-variable "image_tag" {
-  description = "ECR image tag (git short SHA) to deploy"
-  type        = string
-}
-
 variable "allowed_cidrs" {
   description = "Client CIDR blocks allowed to reach the ALB, e.g. your IP as x.x.x.x/32"
   type        = list(string)

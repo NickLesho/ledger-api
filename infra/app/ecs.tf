@@ -2,6 +2,11 @@ locals {
   db_secret_arn = aws_db_instance.this.master_user_secret[0].secret_arn
 }
 
+# Latest image built on main, recorded by the pipeline.
+data "aws_ssm_parameter" "image_tag" {
+  name = "/${var.project}/image-tag"
+}
+
 resource "aws_ecs_cluster" "this" {
   name = var.project
 
@@ -28,7 +33,7 @@ resource "aws_ecs_task_definition" "app" {
   container_definitions = jsonencode([
     {
       name      = "app"
-      image     = "${local.ecr_repository_url}:${var.image_tag}"
+      image     = "${local.ecr_repository_url}:${data.aws_ssm_parameter.image_tag.insecure_value}"
       essential = true
 
       portMappings = [{ containerPort = 8080, protocol = "tcp" }]

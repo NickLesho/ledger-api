@@ -1,7 +1,6 @@
-# syntax=docker/dockerfile:1
-
 # ---------- Stage 1: build the jar ----------
-FROM eclipse-temurin:21-jdk AS build
+# Official Docker images mirrored on ECR Public: no Docker Hub rate limits in CI.
+FROM public.ecr.aws/docker/library/eclipse-temurin:21-jdk AS build
 WORKDIR /workspace
 
 COPY .mvn/ .mvn/
@@ -10,7 +9,7 @@ RUN chmod +x mvnw
 
 COPY src/ src/
 # Cache mount keeps ~/.m2 between builds, so dependencies download once.
-# Tests are skipped here: CI runs `mvn verify` (including Testcontainers) before building the image.
+# Tests are skipped here: CI runs `mvn verify` (including Testcontainers) before images reach main.
 RUN --mount=type=cache,target=/root/.m2 ./mvnw -B -q package -DskipTests
 
 # Split the fat jar into layers: dependencies change rarely, application code often.
@@ -18,7 +17,7 @@ RUN cp target/*.jar application.jar \
  && java -Djarmode=tools -jar application.jar extract --layers --destination extracted
 
 # ---------- Stage 2: minimal runtime ----------
-FROM eclipse-temurin:21-jre
+FROM public.ecr.aws/docker/library/eclipse-temurin:21-jre
 WORKDIR /app
 
 RUN groupadd --system app && useradd --system --gid app --no-create-home app

@@ -17,3 +17,15 @@ output "azs" {
 output "ecr_repository_url" {
   value = aws_ecr_repository.app.repository_url
 }
+
+output "image_tag_parameter" {
+  value = aws_ssm_parameter.image_tag.name
+}
+
+output "github_connection_arn" {
+  value = aws_codestarconnections_connection.github.arn
+}
+
+output "pipeline_name" {
+  value = aws_codepipeline.app.name
+}

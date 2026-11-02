@@ -1,0 +1,31 @@
+version: 0.2
+
+env:
+  variables:
+    DOCKER_BUILDKIT: "1"
+
+phases:
+  pre_build:
+    on-failure: ABORT
+    commands:
+      - if [ -z "${COMMIT_ID:-}" ]; then COMMIT_ID="$CODEBUILD_RESOLVED_SOURCE_VERSION"; fi
+      - IMAGE_TAG=$(echo "$COMMIT_ID" | cut -c1-7)
+      - IMAGE="$ECR_REPOSITORY_URL:$IMAGE_TAG"
+      - echo "Target image $IMAGE"
+      - aws ecr get-login-password --region "$AWS_DEFAULT_REGION" | docker login --username AWS --password-stdin "${ECR_REPOSITORY_URL%%/*}"
+
+  build:
+    on-failure: ABORT
+    commands:
+      - |
+        if aws ecr describe-images --repository-name "$ECR_REPOSITORY_NAME" --image-ids imageTag="$IMAGE_TAG" > /dev/null 2>&1; then
+          echo "Image $IMAGE already exists (tags are immutable); skipping build"
+        else
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+        fi
+
+  post_build:
+    commands:
+      - aws ssm put-parameter --name "$IMAGE_TAG_PARAM" --value "$IMAGE_TAG" --type String --overwrite
+      - bash scripts/deploy.sh "$IMAGE"

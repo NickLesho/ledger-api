@@ -20,3 +20,9 @@ variable "alert_email" {
   description = "Email address that receives CloudWatch alarm notifications"
   type        = string
 }
+
+variable "github_repository" {
+  description = "GitHub repository (owner/name) the pipeline builds; case-sensitive"
+  type        = string
+  default     = "NickLesho/ledger-api"
+}
