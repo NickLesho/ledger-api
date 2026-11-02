@@ -30,3 +30,7 @@ module "vpc" {
   public_subnet_tags  = { Tier = "public" }
   private_subnet_tags = { Tier = "private" }
 }
+
+output "alerts_topic_arn" {
+  value = aws_sns_topic.alerts.arn
+}

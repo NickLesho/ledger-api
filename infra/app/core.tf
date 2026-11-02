@@ -13,4 +13,6 @@ locals {
   vpc_id             = data.terraform_remote_state.core.outputs.vpc_id
   public_subnet_ids  = data.terraform_remote_state.core.outputs.public_subnet_ids
   private_subnet_ids = data.terraform_remote_state.core.outputs.private_subnet_ids
+  ecr_repository_url = data.terraform_remote_state.core.outputs.ecr_repository_url
+  alerts_topic_arn   = data.terraform_remote_state.core.outputs.alerts_topic_arn
 }

@@ -21,3 +21,18 @@ variable "db_instance_class" {
   type        = string
   default     = "db.t4g.micro"
 }
+
+variable "image_tag" {
+  description = "ECR image tag (git short SHA) to deploy"
+  type        = string
+}
+
+variable "allowed_cidrs" {
+  description = "Client CIDR blocks allowed to reach the ALB, e.g. your IP as x.x.x.x/32"
+  type        = list(string)
+
+  validation {
+    condition     = length(var.allowed_cidrs) > 0 && alltrue([for c in var.allowed_cidrs : can(cidrhost(c, 0))])
+    error_message = "allowed_cidrs must be a non-empty list of valid CIDR blocks."
+  }
+}
