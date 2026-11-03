@@ -162,10 +162,9 @@ Copy each `terraform.tfvars.example` to `terraform.tfvars` and fill in your valu
 
 ## Observability
 
-![CloudWatch ALB metrics](docs/images/cloudwatch-alb.png)
-
-ECS logs ship to CloudWatch Logs (7-day retention). Alarms on ALB and application 5xx responses
-notify by email through SNS.
+ECS task logs ship to CloudWatch Logs (`/ecs/ledger-api`, 7-day retention). CloudWatch alarms on
+ALB-generated and application 5xx responses notify by email through SNS. CodeBuild logs go to
+`/codebuild/ledger-api`.
 
 ---
 
