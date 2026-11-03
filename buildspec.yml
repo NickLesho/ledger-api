@@ -8,6 +8,7 @@ phases:
   pre_build:
     on-failure: ABORT
     commands:
+      - docker version
       - if [ -z "${COMMIT_ID:-}" ]; then COMMIT_ID="$CODEBUILD_RESOLVED_SOURCE_VERSION"; fi
       - IMAGE_TAG=$(echo "$COMMIT_ID" | cut -c1-7)
       - IMAGE="$ECR_REPOSITORY_URL:$IMAGE_TAG"

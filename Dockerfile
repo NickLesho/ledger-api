@@ -1,17 +1,17 @@
 # ---------- Stage 1: build the jar ----------
-# Official Docker images mirrored on ECR Public: no Docker Hub rate limits in CI.
-FROM public.ecr.aws/docker/library/eclipse-temurin:21-jdk AS build
+# Official Maven image (mirrored on ECR Public): Maven is preinstalled, so the build
+# never downloads/untars a Maven distribution — which fails inside CodeBuild's Docker.
+FROM public.ecr.aws/docker/library/maven:3-eclipse-temurin-21 AS build
 WORKDIR /workspace
 
 # Dependencies first: this layer is reused until pom.xml changes.
-COPY .mvn/ .mvn/
-COPY mvnw pom.xml ./
-RUN chmod +x mvnw && ./mvnw -B -q dependency:go-offline
+COPY pom.xml ./
+RUN mvn -B -q dependency:go-offline
 
 # Then the source: only these layers rebuild on a code change.
 # Tests are skipped here: CI runs `mvn verify` (including Testcontainers) before code reaches main.
 COPY src/ src/
-RUN ./mvnw -B -q package -DskipTests
+RUN mvn -B -q package -DskipTests
 
 # Split the fat jar into layers: dependencies change rarely, application code often.
 RUN cp target/*.jar application.jar \
