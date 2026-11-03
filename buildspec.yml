@@ -21,8 +21,7 @@ phases:
         if aws ecr describe-images --repository-name "$ECR_REPOSITORY_NAME" --image-ids imageTag="$IMAGE_TAG" > /dev/null 2>&1; then
           echo "Image $IMAGE already exists (tags are immutable); skipping build"
         else
-          docker build -t "$IMAGE" .
-          docker push "$IMAGE"
+          docker build -t "$IMAGE" . && docker push "$IMAGE"
         fi
 
   post_build:

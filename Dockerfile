@@ -3,14 +3,15 @@
 FROM public.ecr.aws/docker/library/eclipse-temurin:21-jdk AS build
 WORKDIR /workspace
 
+# Dependencies first: this layer is reused until pom.xml changes.
 COPY .mvn/ .mvn/
 COPY mvnw pom.xml ./
-RUN chmod +x mvnw
+RUN chmod +x mvnw && ./mvnw -B -q dependency:go-offline
 
+# Then the source: only these layers rebuild on a code change.
+# Tests are skipped here: CI runs `mvn verify` (including Testcontainers) before code reaches main.
 COPY src/ src/
-# Cache mount keeps ~/.m2 between builds, so dependencies download once.
-# Tests are skipped here: CI runs `mvn verify` (including Testcontainers) before images reach main.
-RUN --mount=type=cache,target=/root/.m2 ./mvnw -B -q package -DskipTests
+RUN ./mvnw -B -q package -DskipTests
 
 # Split the fat jar into layers: dependencies change rarely, application code often.
 RUN cp target/*.jar application.jar \
