@@ -30,19 +30,34 @@ new_td=$(aws ecs register-task-definition --cli-input-json "$new_def" \
   --query 'taskDefinition.taskDefinitionArn' --output text)
 echo "Registered $new_td"
 
-aws ecs update-service --cluster "$CLUSTER" --service "$SERVICE" --task-definition "$new_td" > /dev/null
-echo "Rolling deployment started; waiting for the service to stabilise..."
-aws ecs wait services-stable --cluster "$CLUSTER" --services "$SERVICE"
+# Start the rollout and remember which deployment is ours.
+deployment_id=$(aws ecs update-service --cluster "$CLUSTER" --service "$SERVICE" \
+  --task-definition "$new_td" \
+  --query 'service.deployments[?status==`PRIMARY`].id | [0]' --output text)
+echo "Deployment $deployment_id started for $new_td; waiting for ECS to report the outcome..."
 
-# "Stable" is also true after an automatic rollback, so check what actually won.
-primary_td=$(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE" \
-  --query 'services[0].taskDefinition' --output text)
-rollout=$(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE" \
-  --query 'services[0].deployments[?status==`PRIMARY`].rolloutState | [0]' --output text)
+# ECS's rolloutState is authoritative: COMPLETED = healthy and steady,
+# FAILED = circuit breaker rolled it back. If our deployment disappears
+# from the list, it was replaced by a rollback, which is also a failure.
+deadline=$((SECONDS + 1200))
+while [ "$SECONDS" -lt "$deadline" ]; do
+  state=$(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE" \
+    --query "services[0].deployments[?id=='${deployment_id}'].rolloutState | [0]" --output text)
+  case "$state" in
+    COMPLETED)
+      echo "Deployed $IMAGE ($new_td)"
+      exit 0
+      ;;
+    FAILED|None)
+      echo "Deployment $deployment_id FAILED or was rolled back (rolloutState=$state)" >&2
+      exit 1
+      ;;
+    *)
+      echo "rolloutState=$state; checking again in 15s"
+      sleep 15
+      ;;
+  esac
+done
 
-if [ "$primary_td" != "$new_td" ] || [ "$rollout" != "COMPLETED" ]; then
-  echo "Deployment FAILED or was rolled back (rolloutState=$rollout, running=$primary_td)" >&2
-  exit 1
-fi
-
-echo "Deployed $IMAGE"
+echo "Timed out after 20 minutes waiting for deployment $deployment_id" >&2
+exit 1
